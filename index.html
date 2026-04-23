@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBC-AI Score · Prognostic Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --ink: #1a1814;
+    --ink2: #5a5650;
+    --ink3: #9a9690;
+    --accent: #b5341a;
+    --accent-light: #f5ece9;
+    --green: #1a6b3a;
+    --green-light: #e8f4ed;
+    --amber: #8a5a0a;
+    --amber-light: #fdf3e0;
+    --border: #e8e4dc;
+    --radius: 12px;
+    --mono: 'DM Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Header */
+  header {
+    background: var(--ink);
+    color: white;
+    padding: 48px 40px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; right: 60px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .header-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 300;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    color: white;
+  }
+
+  .meta-lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .meta-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.12);
+    align-self: stretch;
+  }
+
+  /* Main layout */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Input grid */
+  .input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .input-grid { grid-template-columns: 1fr; }
+    header { padding: 32px 20px 28px; }
+    main { padding: 28px 16px 60px; }
+  }
+
+  .input-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .input-card-title {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink2);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+
+  .badge-green {
+    background: var(--green-light);
+    color: var(--green);
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink2);
+    margin-bottom: 5px;
+    font-weight: 400;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--ink);
+    background: white;
+  }
+
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9690' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  /* Result */
+  .result-panel {
+    background: var(--ink);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-top: 16px;
+    color: white;
+  }
+
+  .result-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .score-block {}
+
+  .score-num {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: white;
+    margin-bottom: 4px;
+  }
+
+  .score-unit {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+  }
+
+  .risk-block {
+    text-align: right;
+  }
+
+  .risk-pill {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+  }
+
+  .risk-low    { background: var(--green-light); color: var(--green); }
+  .risk-mid    { background: var(--amber-light); color: var(--amber); }
+  .risk-high   { background: var(--accent-light); color: var(--accent); }
+
+  .risk-note {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    font-family: var(--mono);
+  }
+
+  /* Survival bars */
+  .surv-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .surv-item {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .surv-pct {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 3px;
+    transition: all 0.3s ease;
+  }
+
+  .surv-lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Progress track */
+  .risk-track {
+    margin-bottom: 20px;
+  }
+
+  .track-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .track-bg {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    overflow: visible;
+    position: relative;
+  }
+
+  .track-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--ink);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+    transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* C-index comparison */
+  .compare-section {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 20px;
+  }
+
+  .compare-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 12px;
+  }
+
+  .compare-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .compare-name {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  .compare-name.highlight {
+    color: white;
+    font-weight: 500;
+  }
+
+  .compare-bar-bg {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .compare-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.25);
+    transition: width 0.5s ease;
+  }
+
+  .compare-bar-fill.highlight {
+    background: white;
+  }
+
+  .compare-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .compare-val.highlight {
+    color: white;
+    font-weight: 500;
+  }
+
+  /* Footer */
+  footer {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-text {
+    font-size: 11px;
+    color: var(--ink3);
+    line-height: 1.7;
+    max-width: 500px;
+  }
+
+  .footer-affil {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink3);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* Formula tooltip */
+  .formula-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    user-select: none;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+
+  .formula-toggle:hover { color: rgba(255,255,255,0.6); }
+
+  .formula-box {
+    display: none;
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    line-height: 2;
+  }
+
+  .formula-box.open { display: block; }
+
+  .formula-box span { color: rgba(255,255,255,0.8); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Research Tool · Istanbul University · Gastroenterohepatology</div>
+  <h1>PBC-AI Score <em>Calculator</em></h1>
+  <p class="header-sub">A machine learning–derived prognostic score for transplant-free survival in primary biliary cholangitis, integrating baseline fibrosis and early UDCA response.</p>
+  <div class="header-meta">
+    <div class="meta-item">
+      <span class="meta-val">211</span>
+      <span class="meta-lbl">Patients</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-val">0.814</span>
+      <span class="meta-lbl">C-index</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-val">13.2</span>
+      <span class="meta-lbl">Median follow-up (yr)</span>
+    </div>
+    <div class="meta-divider"></div>
+    <div class="meta-item">
+      <span class="meta-val">UEG 2026</span>
+      <span class="meta-lbl">Submitted</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="section-label">Patient variables</p>
+
+  <div class="input-grid">
+    <div class="input-card">
+      <div class="input-card-title">
+        Baseline <span class="badge">At diagnosis</span>
+      </div>
+      <div class="field">
+        <label>Age (years)</label>
+        <input type="number" id="age" value="60" min="18" max="90" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>Cirrhosis at diagnosis</label>
+        <select id="cirrhosis" onchange="calc()">
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Baseline ALP (U/L)</label>
+        <input type="number" id="alp_dx" value="296" min="20" max="2000" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>Baseline FIB-4</label>
+        <input type="number" id="fib4_dx" value="1.23" min="0.1" max="20" step="0.01" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="input-card">
+      <div class="input-card-title">
+        12-month UDCA response <span class="badge badge-green">Dynamic</span>
+      </div>
+      <div class="field">
+        <label>ALP at 12 months (U/L)</label>
+        <input type="number" id="alp_12m" value="140" min="20" max="2000" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>FIB-4 at 12 months</label>
+        <input type="number" id="fib4_12m" value="1.30" min="0.1" max="20" step="0.01" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>GLOBE score at 12 months</label>
+        <input type="number" id="globe_12m" value="0.20" min="-5" max="5" step="0.01" oninput="calc()">
+      </div>
+    </div>
+  </div>
+
+  <p class="section-label">Result</p>
+
+  <div class="result-panel">
+    <div class="result-top">
+      <div class="score-block">
+        <div class="score-num" id="score-num">—</div>
+        <div class="score-unit">Log partial hazard (PBC-AI)</div>
+      </div>
+      <div class="risk-block">
+        <div id="risk-pill" class="risk-pill risk-low">Low risk</div>
+        <div class="risk-note" id="risk-note">Tertile 1 of 3</div>
+      </div>
+    </div>
+
+    <div class="risk-track">
+      <div class="track-labels">
+        <span>Low</span><span>Intermediate</span><span>High</span>
+      </div>
+      <div class="track-bg">
+        <div class="track-marker" id="track-marker" style="left: 15%;"></div>
+      </div>
+    </div>
+
+    <div class="surv-grid">
+      <div class="surv-item">
+        <div class="surv-pct" id="s5">—</div>
+        <div class="surv-lbl">5-year TFS</div>
+      </div>
+      <div class="surv-item">
+        <div class="surv-pct" id="s10">—</div>
+        <div class="surv-lbl">10-year TFS</div>
+      </div>
+      <div class="surv-item">
+        <div class="surv-pct" id="s20">—</div>
+        <div class="surv-lbl">20-year TFS</div>
+      </div>
+    </div>
+
+    <div class="compare-section">
+      <div class="compare-label">C-index comparison · Cohort-level performance</div>
+      <div class="compare-row">
+        <span class="compare-name highlight">PBC-AI (this score)</span>
+        <div class="compare-bar-bg"><div class="compare-bar-fill highlight" style="width: 90%"></div></div>
+        <span class="compare-val highlight">0.814</span>
+      </div>
+      <div class="compare-row">
+        <span class="compare-name">FIB-4 (baseline)</span>
+        <div class="compare-bar-bg"><div class="compare-bar-fill" style="width: 89%"></div></div>
+        <span class="compare-val">0.804</span>
+      </div>
+      <div class="compare-row">
+        <span class="compare-name">GLOBE (12 mo)</span>
+        <div class="compare-bar-bg"><div class="compare-bar-fill" style="width: 85%"></div></div>
+        <span class="compare-val">0.765</span>
+      </div>
+      <div class="compare-row">
+        <span class="compare-name">UK-PBC (5yr)</span>
+        <div class="compare-bar-bg"><div class="compare-bar-fill" style="width: 67%"></div></div>
+        <span class="compare-val">0.601</span>
+      </div>
+      <div class="compare-row">
+        <span class="compare-name">APRI</span>
+        <div class="compare-bar-bg"><div class="compare-bar-fill" style="width: 56%"></div></div>
+        <span class="compare-val">0.501</span>
+      </div>
+    </div>
+
+    <button class="formula-toggle" onclick="toggleFormula()">
+      <span id="formula-arrow">▸</span> Show Cox formula
+    </button>
+    <div class="formula-box" id="formula-box">
+      LP = <span>0.0139</span> × Age
+         + <span>0.8492</span> × Cirrhosis
+         + <span>−0.0001</span> × ALP(baseline)
+         + <span>0.1844</span> × FIB-4(baseline)
+         + <span>0.0010</span> × ALP(12mo)
+         + <span>0.1777</span> × FIB-4(12mo)
+         + <span>0.1865</span> × GLOBE(12mo)
+         + <span>−3.20</span> (intercept)
+      <br><br>
+      Risk strata: Low &lt; −0.368 · Intermediate −0.368 to 0.062 · High ≥ 0.062
+      <br>
+      Bootstrap 95% CI: 0.686–0.917 · Penalized Cox (λ=0.1) · n=178 survival cohort
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p class="footer-text">
+    For research purposes only. Not validated for individual clinical decision-making.
+    Derived from a retrospective single-centre cohort (Istanbul University, 1998–2025).
+    External validation is ongoing.
+  </p>
+  <div class="footer-affil">
+    Dağcı G et al. · UEG Week 2026<br>
+    Istanbul University Faculty of Medicine<br>
+    Division of Gastroenterohepatology
+  </div>
+</footer>
+
+<script>
+const coef = {
+  age: 0.0139, cirrhosis: 0.8492, alp_dx: -0.0001,
+  fib4_dx: 0.1844, alp_12m: 0.001, fib4_12m: 0.1777, globe_12m: 0.1865
+};
+const intercept = -3.20;
+
+const survData = {
+  low:  { s5: 98.0, s10: 98.0, s20: 91 },
+  mid:  { s5: 98.2, s10: 98.2, s20: 86 },
+  high: { s5: 90.9, s10: 77.1, s20: 53 }
+};
+
+function calc() {
+  const age       = parseFloat(document.getElementById('age').value)      || 60;
+  const cirrh     = parseFloat(document.getElementById('cirrhosis').value);
+  const alp_dx    = parseFloat(document.getElementById('alp_dx').value)   || 296;
+  const fib4_dx   = parseFloat(document.getElementById('fib4_dx').value)  || 1.23;
+  const alp_12m   = parseFloat(document.getElementById('alp_12m').value)  || 140;
+  const fib4_12m  = parseFloat(document.getElementById('fib4_12m').value) || 1.30;
+  const globe_12m = parseFloat(document.getElementById('globe_12m').value)|| 0.20;
+
+  const lp = intercept
+    + coef.age       * age
+    + coef.cirrhosis * cirrh
+    + coef.alp_dx    * alp_dx
+    + coef.fib4_dx   * fib4_dx
+    + coef.alp_12m   * alp_12m
+    + coef.fib4_12m  * fib4_12m
+    + coef.globe_12m * globe_12m;
+
+  document.getElementById('score-num').textContent = lp.toFixed(3);
+
+  let risk, pillClass, pillText, note, markerPct;
+  if (lp < -0.368) {
+    risk = 'low'; pillClass = 'risk-low'; pillText = 'Low risk';
+    note = 'Tertile 1 of 3'; markerPct = 15;
+  } else if (lp < 0.062) {
+    risk = 'mid'; pillClass = 'risk-mid'; pillText = 'Intermediate risk';
+    note = 'Tertile 2 of 3'; markerPct = 50;
+  } else {
+    risk = 'high'; pillClass = 'risk-high'; pillText = 'High risk';
+    note = 'Tertile 3 of 3'; markerPct = 85;
+  }
+
+  const pill = document.getElementById('risk-pill');
+  pill.className = 'risk-pill ' + pillClass;
+  pill.textContent = pillText;
+  document.getElementById('risk-note').textContent = note;
+  document.getElementById('track-marker').style.left = markerPct + '%';
+
+  const sd = survData[risk];
+  document.getElementById('s5').textContent  = sd.s5.toFixed(1) + '%';
+  document.getElementById('s10').textContent = sd.s10.toFixed(1) + '%';
+  document.getElementById('s20').textContent = sd.s20.toFixed(1) + '%';
+}
+
+function toggleFormula() {
+  const box = document.getElementById('formula-box');
+  const arrow = document.getElementById('formula-arrow');
+  box.classList.toggle('open');
+  arrow.textContent = box.classList.contains('open') ? '▾' : '▸';
+}
+
+calc();
+</script>
+</body>
+</html>
